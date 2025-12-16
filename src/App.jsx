@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { HabitProvider } from './context/HabitContext';
 import { TaskProvider } from './context/TaskContext';
@@ -13,6 +13,7 @@ import Subscription from './pages/Subscription';
 
 function ProtectedRoute({ children }) {
     const { isAuthenticated, loading } = useAuth();
+    const location = useLocation();
 
     if (loading) {
         return (
@@ -37,7 +38,9 @@ function ProtectedRoute({ children }) {
     }
 
     if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
+        // Preserve the return URL so user can come back after login
+        const returnUrl = location.pathname + location.search;
+        return <Navigate to={`/login?returnUrl=${encodeURIComponent(returnUrl)}`} replace />;
     }
 
     return children;
@@ -45,12 +48,19 @@ function ProtectedRoute({ children }) {
 
 function PublicRoute({ children }) {
     const { isAuthenticated, loading } = useAuth();
+    const location = useLocation();
 
     if (loading) {
         return null;
     }
 
     if (isAuthenticated) {
+        // Check for return URL from protected route redirect
+        const params = new URLSearchParams(location.search);
+        const returnUrl = params.get('returnUrl');
+        if (returnUrl) {
+            return <Navigate to={returnUrl} replace />;
+        }
         return <Navigate to="/dashboard" replace />;
     }
 
