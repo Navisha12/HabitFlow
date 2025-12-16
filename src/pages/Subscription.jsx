@@ -7,7 +7,8 @@ import { Check, X, Sparkles, Zap, Crown, ExternalLink, Loader2, CheckCircle, XCi
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Use relative URL for Vercel, or localhost for development
+const API_URL = import.meta.env.PROD ? '' : 'http://localhost:3001';
 
 const PLANS = [
     {
