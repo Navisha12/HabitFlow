@@ -64,21 +64,53 @@ const PLANS = [
 
 export default function Subscription() {
     const { user, updatePlan } = useAuth();
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [loading, setLoading] = useState(false);
     const [loadingPlan, setLoadingPlan] = useState(null);
     const [subscription, setSubscription] = useState(null);
     const [message, setMessage] = useState(null);
 
+    // Verify Stripe session and update plan
+    const verifySession = async (sessionId) => {
+        try {
+            const response = await fetch(`${API_URL}/api/verify-session?sessionId=${sessionId}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.plan) {
+                    updatePlan(data.plan);
+                    setSubscription({ plan: data.plan, status: 'active' });
+                    return true;
+                }
+            }
+        } catch (error) {
+            console.error('Error verifying session:', error);
+        }
+        return false;
+    };
+
     // Check for success/cancel from Stripe redirect
     useEffect(() => {
-        if (searchParams.get('success') === 'true') {
-            setMessage({ type: 'success', text: 'Payment successful! Your subscription is now active.' });
-            // Refresh subscription status
-            fetchSubscription();
-        } else if (searchParams.get('canceled') === 'true') {
-            setMessage({ type: 'error', text: 'Payment was canceled. You can try again anytime.' });
-        }
+        const handleReturn = async () => {
+            const sessionId = searchParams.get('session_id');
+            const success = searchParams.get('success');
+            const canceled = searchParams.get('canceled');
+
+            if (success === 'true' && sessionId) {
+                const verified = await verifySession(sessionId);
+                if (verified) {
+                    setMessage({ type: 'success', text: 'Payment successful! Your subscription is now active.' });
+                } else {
+                    setMessage({ type: 'success', text: 'Payment successful! Your subscription will be active shortly.' });
+                }
+                // Clean up URL parameters
+                setSearchParams({});
+            } else if (canceled === 'true') {
+                setMessage({ type: 'error', text: 'Payment was canceled. You can try again anytime.' });
+                setSearchParams({});
+            }
+        };
+
+        handleReturn();
     }, [searchParams]);
 
     // Fetch current subscription status
@@ -90,7 +122,7 @@ export default function Subscription() {
             if (response.ok) {
                 const data = await response.json();
                 setSubscription(data);
-                if (data.plan && data.plan !== user.plan) {
+                if (data.plan && data.plan !== user.plan && data.plan !== 'free') {
                     updatePlan(data.plan);
                 }
             }
