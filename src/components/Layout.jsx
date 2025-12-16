@@ -1,4 +1,5 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
     LayoutDashboard,
@@ -6,12 +7,33 @@ import {
     CheckSquare,
     CreditCard,
     LogOut,
-    Sparkles
+    Sparkles,
+    Menu,
+    X
 } from 'lucide-react';
 
 export default function Layout() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    // Close mobile menu when route changes
+    useEffect(() => {
+        setMobileMenuOpen(false);
+    }, [location.pathname]);
+
+    // Prevent body scroll when mobile menu is open
+    useEffect(() => {
+        if (mobileMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [mobileMenuOpen]);
 
     const handleLogout = () => {
         logout();
@@ -26,46 +48,68 @@ export default function Layout() {
         }
     };
 
+    const navItems = [
+        { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { to: '/habits', icon: Target, label: 'Habits' },
+        { to: '/tasks', icon: CheckSquare, label: 'Tasks' },
+        { to: '/subscription', icon: CreditCard, label: 'Subscription' },
+    ];
+
     return (
         <div className="app-layout">
-            <aside className="sidebar">
-                <div className="sidebar-logo">
-                    <Sparkles size={28} />
-                    <span>HabitFlow</span>
+            {/* Mobile Header */}
+            <header className="mobile-header">
+                <div className="mobile-header-content">
+                    <button
+                        className="mobile-menu-btn"
+                        onClick={() => setMobileMenuOpen(true)}
+                        aria-label="Open menu"
+                    >
+                        <Menu size={24} />
+                    </button>
+                    <div className="mobile-logo">
+                        <Sparkles size={22} />
+                        <span>HabitFlow</span>
+                    </div>
+                    <div className="mobile-avatar">
+                        {user?.name?.charAt(0).toUpperCase()}
+                    </div>
+                </div>
+            </header>
+
+            {/* Mobile Overlay */}
+            <div
+                className={`mobile-overlay ${mobileMenuOpen ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+            />
+
+            {/* Sidebar - Desktop always visible, Mobile slide-out */}
+            <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
+                <div className="sidebar-header-mobile">
+                    <div className="sidebar-logo">
+                        <Sparkles size={28} />
+                        <span>HabitFlow</span>
+                    </div>
+                    <button
+                        className="mobile-close-btn"
+                        onClick={() => setMobileMenuOpen(false)}
+                        aria-label="Close menu"
+                    >
+                        <X size={24} />
+                    </button>
                 </div>
 
                 <nav className="sidebar-nav">
-                    <NavLink
-                        to="/dashboard"
-                        className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    >
-                        <LayoutDashboard size={20} />
-                        Dashboard
-                    </NavLink>
-
-                    <NavLink
-                        to="/habits"
-                        className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    >
-                        <Target size={20} />
-                        Habits
-                    </NavLink>
-
-                    <NavLink
-                        to="/tasks"
-                        className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    >
-                        <CheckSquare size={20} />
-                        Tasks
-                    </NavLink>
-
-                    <NavLink
-                        to="/subscription"
-                        className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    >
-                        <CreditCard size={20} />
-                        Subscription
-                    </NavLink>
+                    {navItems.map(({ to, icon: Icon, label }) => (
+                        <NavLink
+                            key={to}
+                            to={to}
+                            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                        >
+                            <Icon size={20} />
+                            {label}
+                        </NavLink>
+                    ))}
                 </nav>
 
                 <div className="sidebar-footer">
