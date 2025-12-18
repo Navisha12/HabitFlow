@@ -77,9 +77,8 @@ export default async function handler(req, res) {
             });
         }
 
-        const baseUrl = process.env.VERCEL_URL
-            ? `https://${process.env.VERCEL_URL}`
-            : process.env.FRONTEND_URL || 'http://localhost:5173';
+        // Use production URL for Stripe redirects (not VERCEL_URL which changes per deployment)
+        const baseUrl = process.env.PRODUCTION_URL || 'https://habit-flow-gray.vercel.app';
 
         // Create checkout session
         const session = await stripe.checkout.sessions.create({
